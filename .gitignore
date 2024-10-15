@@ -135,3 +135,6 @@ dmypy.json
 inventories/data/*
 .idea/
 raw/
+
+cldf/forms.csv
+wordlists/
