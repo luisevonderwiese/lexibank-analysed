@@ -92,7 +92,7 @@ def create_full_wordlist():
     for i, row in df.iterrows():
         with open(wordlist_path, "a") as wordlist_file:
             wordlist_file.write("\t".join([
-            str(i), row["Language_ID"], row["Glottocode"], row["ISO639P3code"], row["Parameter_ID"], row["Concepticon_ID"], row["Concepticon_Gloss"], "", row["Form"], row["Segments"]]) + "\n")
+            str(i+1), row["Language_ID"], row["Glottocode"], row["ISO639P3code"], row["Parameter_ID"], row["Concepticon_ID"], row["Concepticon_Gloss"], "", row["Form"], row["Segments"]]) + "\n")
             print(row["Language_ID"], row["Parameter_ID"], row["Segments"])
 
 
