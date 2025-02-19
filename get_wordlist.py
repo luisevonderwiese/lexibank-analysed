@@ -1,39 +1,18 @@
 import os
 import pandas as pd
-import glottolog
+from pyglottolog import Glottolog
 
 def get_all_families():
-    glottolog.load_families()
-    families = set()
-    for glottocode, family in glottolog.family_dict.items():
-        families.add(family)
-    return list(families)
-
-
-def get_glottocodes(families):
-    if families == ["all"]:
-        return []
-    glottocodes = []
-    for glottocode, family in glottolog.family_dict.items():
-        if family in families:
-            glottocodes.append(glottocode)
-    return glottocodes
-
-
-def get_concepts(conceptlist):
-    if conceptlist == "all":
-        return []
-    elif conceptlist == "swadesh100":
-        concept_df = pd.read_csv("conceptlists/swadesh100.tsv", sep = "\t", dtype = "str")
-    elif conceptlist == "swadesh200":
-        concept_df = pd.read_csv("conceptlists/swadesh200.tsv", sep = "\t", dtype = "str")
-    else:
-        print("Illegal concept list")
-        return None
-    concepticon_ids = list(concept_df["CONCEPTICON_ID"])
-    return concepticon_ids
-
-
+    glot = Glottolog("glottolog", cache = True)
+    families = {}
+    for languoid in glot.languoids(exclude_pseudo_families=True):
+        if languoid.category == "Family" or languoid.family is None:
+            continue
+        family = languoid.family.glottocode
+        if not family in families:
+            families[family] = []
+        families[family].append(languoid.glottocode)
+    return families
 
 
 def filter(concepts, glottocodes, wordlist_path):
@@ -46,26 +25,17 @@ def filter(concepts, glottocodes, wordlist_path):
         df = df[df["GLOTTOCODE"].isin(glottocodes)]
     if len(df) > 0:
         df.to_csv(wordlist_path, sep = "\t")
-    #for glottocode in glottocodes:
-    #    if glottocode not in set(df["GLOTTOCODE"]):
-    #        print(glottocode)
-    #print(len(glottocodes))
-    #print(len(set(df["GLOTTOCODE"])))
 
-def filter_for(conceptlist, family):
-    concepts = get_concepts(conceptlist)
-    glottocodes = get_glottocodes([family])
-    wordlist_path = os.path.join("wordlists", "families", family + "_" + conceptlist + "_wordlist.tsv")
-    filter(concepts, glottocodes, wordlist_path)
+def filter_family(name, members):
+    wordlist_path = os.path.join("wordlists", "families", name + "_wordlist.tsv")
+    filter([], members, wordlist_path)
 
-def filter_for_list(conceptlist, languagelist):
-    if languagelist == "all":
-        glottocodes = []
-    else:
-        with open(os.path.join("languagelists", languagelist + "_languages.txt"), "r") as languages_file:
-            glottocodes = languages_file.read().split("\n")
-    concepts = get_concepts(conceptlist)
-    wordlist_path = os.path.join("wordlists", "languagelists", languagelist + "_" + conceptlist + "_wordlist.tsv")
+def filter_swadesh(languagelist):
+    with open(os.path.join("languagelists", languagelist + "_languages.txt"), "r") as languages_file:
+        glottocodes = languages_file.read().split("\n")
+    concept_df = pd.read_csv("conceptlists/swadesh100.tsv", sep = "\t", dtype = "str")
+    concepts = list(concept_df["CONCEPTICON_ID"])
+    wordlist_path = os.path.join("wordlists", "swadesh100", languagelist + "_swadesh100_wordlist.tsv")
     filter(concepts, glottocodes, wordlist_path)
 
 
@@ -97,17 +67,17 @@ def create_full_wordlist():
 
 
 
-#create_full_wordlist()
-if not os.path.isdir(os.path.join("wordlists", "languagelists")):
-    os.makedirs(os.path.join("wordlists", "languagelists"))
-for languagelist in ["iecor", "main", "all"]:
-    for conceptlist in ["all", "swadesh100", "swadesh200"]:
-        filter_for_list(conceptlist,languagelist)
+
+if not os.path.isdir(os.path.join("wordlists", "swadesh100")):
+    os.makedirs(os.path.join("wordlists", "swadesh100"))
 if not os.path.isdir(os.path.join("wordlists", "families")):
     os.makedirs(os.path.join("wordlists", "families"))
+
+#create_full_wordlist()
+
+#filter_swadesh("dense")
+#filter_swadesh("iecor")
 families = get_all_families()
-families.append("all")
-for family in families:
-    print(family)
-    for conceptlist in ["all", "swadesh100", "swadesh200"]:
-        filter_for(conceptlist, family)
+for name, members in families.items():
+    print(name)
+    filter_family(name, members)
